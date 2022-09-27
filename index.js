@@ -24,6 +24,27 @@ class Substrate {
     return this.asNumber(await this.api.query.system.number());
   }
 
+  async catchEvent(block, decimals,from, to, amount, evt, extrinsicData) {
+    const { event, phase } = evt;
+    let extrinsicTimestamp = extrinsicData[0].method.args.now;
+    extrinsicTimestamp = extrinsicTimestamp.split(",").join("");
+    extrinsicTimestamp = parseInt(extrinsicTimestamp.substring(0, 10));
+    let status = event.meta.docs.toHuman()[0] || "";
+    let extrinsicIndex = phase.toHuman();
+    extrinsicIndex = extrinsicIndex["ApplyExtrinsic"];
+
+    return {
+      block_timestamp: extrinsicTimestamp,
+      extrinsic_index: block+"-"+extrinsicIndex,
+      from: from.toString(),
+      to: to.toString(),
+      amount: this.asNumber(amount) / Math.pow(10, decimals),
+      block_num: block,
+      success: true,
+      success: status !== "",
+    }
+  }
+
   async fetchTransfers(
     startBlock,
     endBlock,
@@ -39,28 +60,17 @@ class Substrate {
     const extrinsicData = signedBlock.block.extrinsics.toHuman();
 
     record.events.forEach((evt) => {
-      const { event,phase } = evt;
+      const { event } = evt;
       const eventName = `${event.section}.${event.method}`;
+
+      if (eventName === "allocations.NewAllocation") {
+        const [to, amount] = event.data;
+        cb(this.catchEvent(i, decimals, "0", to, amount, evt, extrinsicData));
+      }
 
       if (eventName === "balances.Transfer") {
         const [from, to, amount] = event.data;
-        let status = event.meta.docs.toHuman()[0] || "";
-        let extrinsicIndex = phase.toHuman();
-        extrinsicIndex = extrinsicIndex["ApplyExtrinsic"];
-
-        let extrinsicTimestamp = extrinsicData[0].method.args.now;
-        extrinsicTimestamp = extrinsicTimestamp.split(",").join("");
-
-        const transfer = {
-          block_timestamp: parseInt(extrinsicTimestamp.substring(0, 10)),
-          extrinsic_index: i+"-"+extrinsicIndex,
-          from: from.toString(),
-          to: to.toString(),
-          amount: this.asNumber(amount) / Math.pow(10, decimals),
-          block_num: i,
-          success: status == "Transfer succeeded.",
-        };
-        cb(transfer);
+        cb(this.catchEvent(i, decimals, from, to, amount, evt, extrinsicData));
       }
     });
   }
@@ -68,7 +78,7 @@ class Substrate {
 }
 
 const build = async function() {
-  const url = "wss://node";
+  const url = "wss://nodle-parachain.api.onfinality.io/public-ws";
   const wsProvider = new WsProvider(url);
   const api = await ApiPromise.create({ provider: wsProvider });
   return new Substrate(api);
@@ -78,7 +88,6 @@ const build = async function() {
 function insertToBigQuery(rows) {
   const bigquery = new BigQuery();
 
-  console.log("HOLA");
   async function insertRowsAsStream() {
     const datasetId = 'dataset';
     const tableId = 'table';
@@ -93,19 +102,19 @@ function insertToBigQuery(rows) {
 }
 
 
-const startBlock = 304864;
-const endBlock = 1061571;
+const startBlock = 552869;
+const endBlock = 552869;
 const scanner = await build();
 const maxSize = 100;
 let transfers = [];
 
 
 scanner.fetchTransfers(startBlock, endBlock, (transfer) => {
-  transfers.push(transfer);
-  if (transfers.length > maxSize) {
-    console.log(transfers.length);
-    insertToBigQuery(transfers);
-    transfers = [];
-  }
+  // transfers.push(transfer);
+  // if (transfers.length > maxSize) {
+  //   console.log(transfers.length);
+  //   insertToBigQuery(transfers);
+  //   transfers = [];
+  // }
 });
 
