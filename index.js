@@ -65,12 +65,16 @@ class Substrate {
 
       if (eventName === "allocations.NewAllocation") {
         const [to, amount] = event.data;
-        cb(this.catchEvent(i, decimals, "0", to, amount, evt, extrinsicData));
+        let t = this.catchEvent(i, decimals, "0", to, amount, evt, extrinsicData);
+        t["event_type"] = "allocations.NewAllocation";
+        cb(t);
       }
 
       if (eventName === "balances.Transfer") {
         const [from, to, amount] = event.data;
-        cb(this.catchEvent(i, decimals, from, to, amount, evt, extrinsicData));
+        let t = this.catchEvent(i, decimals, from, to, amount, evt, extrinsicData);
+        t["event_type"] = "balances.Transfer";
+        cb(t);
       }
     });
   }
