@@ -5,7 +5,10 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "to_csv": "node index.js csv",
+    "to_json": "node index.js json",
+    "to_pubsub": "node index.js pubsub"
   },
   "author": "",
   "license": "ISC",

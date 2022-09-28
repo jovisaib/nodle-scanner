@@ -103,43 +103,50 @@ let transfers = [];
 
 
 
-const writeCsv = true;
-const csvFilename = "data.csv";
-const columns = [
-  "block_num",
-  "event_type",
-  "block_timestamp",
-  "extrinsic_index",
-  "from",
-  "to",
-  "amount",
-  "success",
-];
-const stringifier = stringify({ header: true, columns: columns });
-stringifier.pipe(fs.createWriteStream(  "./"+csvFilename ));
+let action = "";
+if (process.argv.length >= 3) {
+  action = process.argv[2];
+}
 
-const jsonFilename = "data.json";
-const writeJson = true;
-var jsonStream = fs.createWriteStream("./"+jsonFilename)
 
+let stream;
+if (action === "csv") {
+  stream = stringify({ header: true, columns: [
+    "block_num",
+    "event_type",
+    "block_timestamp",
+    "extrinsic_index",
+    "from",
+    "to",
+    "amount",
+    "success",
+  ]});
+  stream.pipe(fs.createWriteStream("./data.csv"));
+}
+
+if (action === "json") {
+  stream = fs.createWriteStream("./data.json")
+}
 
 await scanner.fetchTransfers(startBlock, endBlock, (transfer) => {
-  transfers.push(transfer);
-  console.log(transfers.length);
-
-  if (writeCsv) {
-    stringifier.write(transfer);
+  if (action === "csv") {
+    stream.write(transfer);
   }
 
-  if (writeJson) {
-    jsonStream.write(JSON.stringify(transfer, null, 2)+"\r\n")
+  if (action === "json") {
+    stream.write(JSON.stringify(transfer, null, 2)+"\r\n")
   }
-  // if (transfers.length > maxSize) {
-    // console.log(transfers.length);
-    // const pubsub = new PubSub({projectId});
-    // const topic = pubsub.topic(topicName);
-    // let row = Buffer.from(transfers);
-    // topic.publishMessage(row);
-    // transfers = [];
-    // }
+
+  if (action === "pubsub"){
+    transfers.push(transfer);
+    
+    if (transfers.length > maxSize) {
+      console.log(transfers.length);
+      const pubsub = new PubSub({projectId});
+      const topic = pubsub.topic(topicName);
+      let row = Buffer.from(transfers);
+      topic.publishMessage(row);
+      transfers = [];
+    }
+  }
 });
