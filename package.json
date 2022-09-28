@@ -11,6 +11,7 @@
   "license": "ISC",
   "dependencies": {
     "@google-cloud/pubsub": "^3.2.0",
-    "@polkadot/api": "^9.4.2"
+    "@polkadot/api": "^9.4.2",
+    "csv": "^6.2.0"
   }
 }

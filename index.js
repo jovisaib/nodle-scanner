@@ -2,7 +2,12 @@ import {
     ApiPromise,
     WsProvider,
   } from "@polkadot/api";
-const {PubSub} = require('@google-cloud/pubsub');
+import * as fs from 'fs';
+import { stringify } from 'csv-stringify';
+import {PubSub} from '@google-cloud/pubsub';
+
+
+
 
     
 class Substrate {
@@ -24,7 +29,7 @@ class Substrate {
     return this.asNumber(await this.api.query.system.number());
   }
 
-  async catchEvent(block, decimals,from, to, amount, evt, extrinsicData) {
+  catchEvent(block, decimals,from, to, amount, evt, extrinsicData) {
     const { event, phase } = evt;
     let extrinsicTimestamp = extrinsicData[0].method.args.now;
     extrinsicTimestamp = extrinsicTimestamp.split(",").join("");
@@ -40,7 +45,6 @@ class Substrate {
       to: to.toString(),
       amount: this.asNumber(amount) / Math.pow(10, decimals),
       block_num: block,
-      success: true,
       success: status !== "",
     }
   }
@@ -98,15 +102,44 @@ const maxSize = 100000;
 let transfers = [];
 
 
-scanner.fetchTransfers(startBlock, endBlock, (transfer) => {
-  transfers.push(transfer);
-  if (transfers.length > maxSize) {
-    console.log(transfers.length);
-    const pubsub = new PubSub({projectId});
-    const topic = pubsub.topic(topicName);
-    let row = Buffer.from(transfers);
-    topic.publishMessage(row);
-    transfers = [];
-  }
-});
 
+const writeCsv = true;
+const csvFilename = "data.csv";
+const columns = [
+  "block_num",
+  "event_type",
+  "block_timestamp",
+  "extrinsic_index",
+  "from",
+  "to",
+  "amount",
+  "success",
+];
+const stringifier = stringify({ header: true, columns: columns });
+stringifier.pipe(fs.createWriteStream(  "./"+csvFilename ));
+
+const jsonFilename = "data.json";
+const writeJson = true;
+var jsonStream = fs.createWriteStream("./"+jsonFilename)
+
+
+await scanner.fetchTransfers(startBlock, endBlock, (transfer) => {
+  transfers.push(transfer);
+  console.log(transfers.length);
+
+  if (writeCsv) {
+    stringifier.write(transfer);
+  }
+
+  if (writeJson) {
+    jsonStream.write(JSON.stringify(transfer, null, 2)+"\r\n")
+  }
+  // if (transfers.length > maxSize) {
+    // console.log(transfers.length);
+    // const pubsub = new PubSub({projectId});
+    // const topic = pubsub.topic(topicName);
+    // let row = Buffer.from(transfers);
+    // topic.publishMessage(row);
+    // transfers = [];
+    // }
+});
