@@ -2,7 +2,7 @@ import {
     ApiPromise,
     WsProvider,
   } from "@polkadot/api";
-import {BigQuery} from '@google-cloud/bigquery';
+const {PubSub} = require('@google-cloud/pubsub');
 
     
 class Substrate {
@@ -88,37 +88,25 @@ const build = async function() {
   return new Substrate(api);
 }
 
-
-function insertToBigQuery(rows) {
-  const bigquery = new BigQuery();
-
-  async function insertRowsAsStream() {
-    const datasetId = 'dataset';
-    const tableId = 'table';
-
-    await bigquery
-      .dataset(datasetId)
-      .table(tableId)
-      .insert(rows);
-    console.log(`Inserted ${rows.length} rows`);
-  }
-  insertRowsAsStream(rows);
-}
-
+const projectId = 'your-project-id';
+const topicName = 'my-topic';
 
 const startBlock = 552869;
 const endBlock = 552869;
 const scanner = await build();
-const maxSize = 100;
+const maxSize = 100000;
 let transfers = [];
 
 
 scanner.fetchTransfers(startBlock, endBlock, (transfer) => {
-  // transfers.push(transfer);
-  // if (transfers.length > maxSize) {
-  //   console.log(transfers.length);
-  //   insertToBigQuery(transfers);
-  //   transfers = [];
-  // }
+  transfers.push(transfer);
+  if (transfers.length > maxSize) {
+    console.log(transfers.length);
+    const pubsub = new PubSub({projectId});
+    const topic = pubsub.topic(topicName);
+    let row = Buffer.from(transfers);
+    topic.publishMessage(row);
+    transfers = [];
+  }
 });
 

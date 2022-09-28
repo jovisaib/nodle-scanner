@@ -10,7 +10,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@google-cloud/bigquery": "^6.0.3",
+    "@google-cloud/pubsub": "^3.2.0",
     "@polkadot/api": "^9.4.2"
   }
 }
