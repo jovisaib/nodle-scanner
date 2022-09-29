@@ -4,9 +4,7 @@ import {
   } from "@polkadot/api";
 import * as fs from 'fs';
 import { stringify } from 'csv-stringify';
-import {PubSub} from '@google-cloud/pubsub';
-
-
+import { PubSub } from '@google-cloud/pubsub';
 
 
     
