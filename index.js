@@ -25,10 +25,6 @@ class Substrate {
     return this.asNumber(decimals);
   }
 
-  async fucurrentBlocknction() {
-    return this.asNumber(await this.api.query.system.number());
-  }
-
   catchEvent(block, decimals,from, to, amount, evt, extrinsicData) {
     const { event, phase } = evt;
     let extrinsicTimestamp = extrinsicData[0].method.args.now;
@@ -49,40 +45,35 @@ class Substrate {
     }
   }
 
-  async fetchTransfers(
-    startBlock,
-    endBlock,
-    cb,
-  ) {
-  const total = endBlock - startBlock;
-  const decimals = await this.decimals();
+  async fetchTransfers(startBlock, endBlock, cb) {
+    const decimals = await this.decimals();
   
-  for (let i = startBlock; i <= endBlock; i++) {
-    const blockHash = await this.api.rpc.chain.getBlockHash(i);
-    const record = await this.api.derive.tx.events(blockHash);
-    const signedBlock = await this.api.rpc.chain.getBlock(blockHash);
-    const extrinsicData = signedBlock.block.extrinsics.toHuman();
+    for (let i = startBlock; i <= endBlock; i++) {
+      const blockHash = await this.api.rpc.chain.getBlockHash(i);
+      const record = await this.api.derive.tx.events(blockHash);
+      const signedBlock = await this.api.rpc.chain.getBlock(blockHash);
+      const extrinsicData = signedBlock.block.extrinsics.toHuman();
 
-    record.events.forEach((evt) => {
-      const { event } = evt;
-      const eventName = `${event.section}.${event.method}`;
+      record.events.forEach((evt) => {
+        const { event } = evt;
+        const eventName = `${event.section}.${event.method}`;
 
-      if (eventName === "allocations.NewAllocation") {
-        const [to, amount] = event.data;
-        let t = this.catchEvent(i, decimals, "0", to, amount, evt, extrinsicData);
-        t["event_type"] = "allocations.NewAllocation";
-        cb(t);
-      }
+        if (eventName === "allocations.NewAllocation") {
+          const [to, amount] = event.data;
+          let t = this.catchEvent(i, decimals, "0", to, amount, evt, extrinsicData);
+          t["event_type"] = "allocations.NewAllocation";
+          cb(t);
+        }
 
-      if (eventName === "balances.Transfer") {
-        const [from, to, amount] = event.data;
-        let t = this.catchEvent(i, decimals, from, to, amount, evt, extrinsicData);
-        t["event_type"] = "balances.Transfer";
-        cb(t);
-      }
-    });
+        if (eventName === "balances.Transfer") {
+          const [from, to, amount] = event.data;
+          let t = this.catchEvent(i, decimals, from, to, amount, evt, extrinsicData);
+          t["event_type"] = "balances.Transfer";
+          cb(t);
+        }
+      });
+    }
   }
-}
 }
 
 const build = async function() {
@@ -93,80 +84,83 @@ const build = async function() {
 }
 
 
-let startBlock = 304864;
-let endBlock = 304864;
+
+let main = async () => {
+  const PROJECT_ID = 'your-project-id';
+  const TOPIC_NAME = 'my-topic';
+  const MAX_SIZE = 100000;
+
+  let startBlock = 0;
+  let endBlock = 0;
 
 
-let action = "";
-if (process.argv.length >= 3) {
-  action = process.argv[2];
-}
-
-
-if ((action == "csv" || action == "json") && process.argv.length >= 4) {
-  startBlock = process.argv[3]
-  endBlock = process.argv[3]
-  console.log(`The execution will output into data.${action}`)
-}
-
-if (action == "pubsub" && process.argv.length >= 5) {
-  startBlock = process.argv[3]
-  endBlock = process.argv[4]
-  console.log("The execution will output into pubsub.")
-}
-
-console.log(`Querying a total of ${endBlock-startBlock+1} blocks from ${startBlock} to ${endBlock}`);
-
-let stream;
-if (action === "csv") {
-  stream = stringify({ header: true, columns: [
-    "block_num",
-    "event_type",
-    "block_timestamp",
-    "extrinsic_index",
-    "from",
-    "to",
-    "amount",
-    "success",
-  ]});
-  stream.pipe(fs.createWriteStream("./data.csv"));
-}
-
-if (action === "json") {
-  stream = fs.createWriteStream("./data.json")
-}
-
-
-const projectId = 'your-project-id';
-const topicName = 'my-topic';
-
-const scanner = await build();
-const maxSize = 100000;
-let transfers = [];
-
-await scanner.fetchTransfers(startBlock, endBlock, (transfer) => {
+  let action = "";
+  if (process.argv.length >= 3) {
+    action = process.argv[2];
+  }
+  
+  
+  if ((action == "csv" || action == "json") && process.argv.length >= 4) {
+    startBlock = process.argv[3]
+    endBlock = process.argv[3]
+    console.log(`The execution will output into data.${action}`)
+  }
+  
+  if (action == "pubsub" && process.argv.length >= 5) {
+    startBlock = process.argv[3]
+    endBlock = process.argv[4]
+    console.log("The execution will output into pubsub.")
+  }
+  
+  console.log(`Querying a total of ${endBlock-startBlock+1} blocks from ${startBlock} to ${endBlock}`);
+  
+  let stream;
   if (action === "csv") {
-    stream.write(transfer);
+    stream = stringify({ header: true, columns: [
+      "block_num",
+      "event_type",
+      "block_timestamp",
+      "extrinsic_index",
+      "from",
+      "to",
+      "amount",
+      "success",
+    ]});
+    stream.pipe(fs.createWriteStream("./data.csv"));
   }
-
+  
   if (action === "json") {
-    stream.write(JSON.stringify(transfer, null, 2)+"\r\n")
+    stream = fs.createWriteStream("./data.json")
   }
+  
+  const scanner = await build();
+  let transfers = [];
 
-  if (action === "pubsub"){
+  scanner.fetchTransfers(startBlock, endBlock, (transfer) => {
+    if (action === "csv") {
+      stream.write(transfer);
+    }
+  
+    if (action === "json") {
+      stream.write(JSON.stringify(transfer, null, 2)+"\r\n")
+    }
+  
+    if (action === "pubsub") {
+      transfers.push(transfer);
+      
+      if (transfers.length > MAX_SIZE) {
+        console.log(transfers.length);
+        const pubsub = new PubSub({projectId});
+        const topic = pubsub.topic(topicName);
+        let row = Buffer.from(transfers);
+        topic.publishMessage(row);
+        transfers = [];
+      }
+    }
+  });
+}
 
-    console.log(transfer);
-    // transfers.push(transfer);
-    
-    // if (transfers.length > maxSize) {
-    //   console.log(transfers.length);
-    //   const pubsub = new PubSub({projectId});
-    //   const topic = pubsub.topic(topicName);
-    //   let row = Buffer.from(transfers);
-    //   topic.publishMessage(row);
-    //   transfers = [];
-    // }
-  }
-});
+
+main();
 
 
