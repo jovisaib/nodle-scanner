@@ -86,10 +86,10 @@ const build = async function() {
 
 
 let main = async () => {
-  const PROJECT_ID = 'your-project-id';
-  const TOPIC_NAME = 'my-topic';
   const MAX_SIZE = 100000;
-
+  
+  let projectId = "";
+  let topicName = "";
   let startBlock = 0;
   let endBlock = 0;
 
@@ -106,10 +106,12 @@ let main = async () => {
     console.log(`The execution will output into data.${action}`)
   }
   
-  if (action == "pubsub" && process.argv.length >= 5) {
-    startBlock = process.argv[3]
-    endBlock = process.argv[4]
-    console.log("The execution will output into pubsub.")
+  if (action == "pubsub" && process.argv.length >= 7) {
+    projectId = process.argv[3]
+    topicName = process.argv[4]
+    startBlock = process.argv[5]
+    endBlock = process.argv[6]
+    console.log(`The execution will output into pubsub topic ${topicName} from project ${projectId}`)
   }
   
   console.log(`Querying a total of ${endBlock-startBlock+1} blocks from ${startBlock} to ${endBlock}`);
