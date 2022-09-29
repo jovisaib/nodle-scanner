@@ -92,20 +92,20 @@ const build = async function() {
   return new Substrate(api);
 }
 
-const projectId = 'your-project-id';
-const topicName = 'my-topic';
 
-const startBlock = 552869;
-const endBlock = 552869;
-const scanner = await build();
-const maxSize = 100000;
-let transfers = [];
-
+let startBlock = 304864;
+let endBlock = 552869;
 
 
 let action = "";
 if (process.argv.length >= 3) {
   action = process.argv[2];
+}
+
+
+if ((action == "csv" || action == "json") && process.argv.length >= 4) {
+  startBlock = process.argv[3]
+  endBlock = process.argv[3]
 }
 
 
@@ -127,6 +127,14 @@ if (action === "csv") {
 if (action === "json") {
   stream = fs.createWriteStream("./data.json")
 }
+
+
+const projectId = 'your-project-id';
+const topicName = 'my-topic';
+
+const scanner = await build();
+const maxSize = 100000;
+let transfers = [];
 
 await scanner.fetchTransfers(startBlock, endBlock, (transfer) => {
   if (action === "csv") {
@@ -150,3 +158,5 @@ await scanner.fetchTransfers(startBlock, endBlock, (transfer) => {
     }
   }
 });
+
+
