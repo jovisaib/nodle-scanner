@@ -39,7 +39,7 @@ class Substrate {
       to: to.toString(),
       amount: this.asNumber(amount) / Math.pow(10, decimals),
       block_num: block,
-      success: status !== "",
+      success: status != "",
     }
   }
 
@@ -56,10 +56,10 @@ class Substrate {
         const { event } = evt;
         const eventName = `${event.section}.${event.method}`;
 
-        if (eventName === "balances.Transfer") {
+        if (eventName == "balances.Transfer") {
           const [from, to, amount] = event.data;
           let t = this.catchEvent(i, decimals, from, to, amount, evt, extrinsicData);
-          if (from === "4jbtsgNhpGAzdEGrKRb7g8Mq4ToNUpBVxeye942tWfG3gcYi") {
+          if (from == "4jbtsgNhpGAzdEGrKRb7g8Mq4ToNUpBVxeye942tWfG3gcYi") {
             t["event_type"] = "allocation";
           }else{
             t["event_type"] = "transfer";
@@ -67,14 +67,14 @@ class Substrate {
           cb(t);
         }
       });
-      console.log(`Block ${i} scan success!`)
+      console.log(`Block ${i} scan success! ${endBlock-i+1}`)
     }
     console.log(`Finished scan from ${startBlock} to ${endBlock}; total of ${endBlock-startBlock+1} blocks`)
   }
 }
 
 const build = async function() {
-  const url = "wss://nodle-parachain.api.onfinality.io/public-ws";
+  const url = "wss://nodle-parachain.api.onfinality.io/ws?apikey=245a89da-c9f1-47c8-801b-f7a27a122862";
   const wsProvider = new WsProvider(url);
   const api = await ApiPromise.create({ provider: wsProvider });
   return new Substrate(api);
@@ -136,25 +136,25 @@ let main = async () => {
   let transfers = [];
 
   await scanner.fetchTransfers(startBlock, endBlock, async (transfer) => {
-    if (action === "csv") {
-      stream.write(transfer);
-    }
+    // if (action == "csv") {
+    //   stream.write(transfer);
+    // }
   
-    if (action === "json") {
+    if (action == "json") {
       stream.write(JSON.stringify(transfer, null, 2)+"\r\n")
     }
   
-    if (action === "pubsub") {
-      transfers.push(transfer);
+    if (action == "pubsub") {
+      // transfers.push(transfer);
       
-      if (transfers.length >= MAX_SIZE) {
-        const pubsub = new PubSub();
-        const topic = pubsub.topic(topicName);
-        let row = Buffer.from(JSON.stringify(transfers));
-        await topic.publish(row);
-        console.log("PUBL", transfers.length,row);
-        transfers = [];
-      }
+      // if (transfers.length >= MAX_SIZE) {
+      //   const pubsub = new PubSub();
+      //   const topic = pubsub.topic(topicName);
+      //   let row = Buffer.from(JSON.stringify(transfers));
+      //   await topic.publish(row);
+      //   console.log("PUBL", transfers.length,row);
+      //   transfers = [];
+      // }
     }
   });
 }
