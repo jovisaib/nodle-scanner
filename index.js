@@ -56,17 +56,14 @@ class Substrate {
         const { event } = evt;
         const eventName = `${event.section}.${event.method}`;
 
-        if (eventName === "allocations.NewAllocation") {
-          const [to, amount] = event.data;
-          let t = this.catchEvent(i, decimals, "0", to, amount, evt, extrinsicData);
-          t["event_type"] = "allocations.NewAllocation";
-          cb(t);
-        }
-
         if (eventName === "balances.Transfer") {
           const [from, to, amount] = event.data;
           let t = this.catchEvent(i, decimals, from, to, amount, evt, extrinsicData);
-          t["event_type"] = "balances.Transfer";
+          if (from === "4jbtsgNhpGAzdEGrKRb7g8Mq4ToNUpBVxeye942tWfG3gcYi") {
+            t["event_type"] = "allocation";
+          }else{
+            t["event_type"] = "transfer";
+          }
           cb(t);
         }
       });
@@ -138,7 +135,7 @@ let main = async () => {
   const scanner = await build();
   let transfers = [];
 
-  scanner.fetchTransfers(startBlock, endBlock, (transfer) => {
+  await scanner.fetchTransfers(startBlock, endBlock, async (transfer) => {
     if (action === "csv") {
       stream.write(transfer);
     }
@@ -150,18 +147,17 @@ let main = async () => {
     if (action === "pubsub") {
       transfers.push(transfer);
       
-      if (transfers.length > MAX_SIZE) {
-        // console.log(transfers.length);
-        // const pubsub = new PubSub({projectId});
-        // const topic = pubsub.topic(topicName);
-        // let row = Buffer.from(transfers);
-        // topic.publishMessage(row);
-        // transfers = [];
+      if (transfers.length >= MAX_SIZE) {
+        const pubsub = new PubSub();
+        const topic = pubsub.topic(topicName);
+        let row = Buffer.from(JSON.stringify(transfers));
+        await topic.publish(row);
+        console.log("PUBL", transfers.length,row);
+        transfers = [];
       }
     }
   });
 }
-
 
 main();
 
