@@ -70,7 +70,9 @@ class Substrate {
           cb(t);
         }
       });
+      console.log(`Block ${i} scan success!`)
     }
+    console.log(`Finished scan from ${startBlock} to ${endBlock}; total of ${endBlock-startBlock+1} blocks`)
   }
 }
 
@@ -147,12 +149,12 @@ let main = async () => {
       transfers.push(transfer);
       
       if (transfers.length > MAX_SIZE) {
-        console.log(transfers.length);
-        const pubsub = new PubSub({projectId});
-        const topic = pubsub.topic(topicName);
-        let row = Buffer.from(transfers);
-        topic.publishMessage(row);
-        transfers = [];
+        // console.log(transfers.length);
+        // const pubsub = new PubSub({projectId});
+        // const topic = pubsub.topic(topicName);
+        // let row = Buffer.from(transfers);
+        // topic.publishMessage(row);
+        // transfers = [];
       }
     }
   });
