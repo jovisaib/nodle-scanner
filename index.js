@@ -86,7 +86,7 @@ class Substrate {
 }
 
 const build = async function() {
-  const url = "wss://nodle-parachain.api.onfinality.io/public-ws";
+  const url = "wss://node-6980789554074214400.gx.onfinality.io/ws?apikey=18953968-2a4d-4b1a-83e8-89c0c18961f4";
   const wsProvider = new WsProvider(url);
   const api = await ApiPromise.create({ provider: wsProvider });
   return new Substrate(api);
@@ -94,7 +94,7 @@ const build = async function() {
 
 
 let startBlock = 304864;
-let endBlock = 552869;
+let endBlock = 304864;
 
 
 let action = "";
@@ -106,8 +106,16 @@ if (process.argv.length >= 3) {
 if ((action == "csv" || action == "json") && process.argv.length >= 4) {
   startBlock = process.argv[3]
   endBlock = process.argv[3]
+  console.log(`The execution will output into data.${action}`)
 }
 
+if (action == "pubsub" && process.argv.length >= 5) {
+  startBlock = process.argv[3]
+  endBlock = process.argv[4]
+  console.log("The execution will output into pubsub.")
+}
+
+console.log(`Querying a total of ${endBlock-startBlock+1} blocks from ${startBlock} to ${endBlock}`);
 
 let stream;
 if (action === "csv") {
@@ -146,16 +154,18 @@ await scanner.fetchTransfers(startBlock, endBlock, (transfer) => {
   }
 
   if (action === "pubsub"){
-    transfers.push(transfer);
+
+    console.log(transfer);
+    // transfers.push(transfer);
     
-    if (transfers.length > maxSize) {
-      console.log(transfers.length);
-      const pubsub = new PubSub({projectId});
-      const topic = pubsub.topic(topicName);
-      let row = Buffer.from(transfers);
-      topic.publishMessage(row);
-      transfers = [];
-    }
+    // if (transfers.length > maxSize) {
+    //   console.log(transfers.length);
+    //   const pubsub = new PubSub({projectId});
+    //   const topic = pubsub.topic(topicName);
+    //   let row = Buffer.from(transfers);
+    //   topic.publishMessage(row);
+    //   transfers = [];
+    // }
   }
 });
 
