@@ -86,7 +86,7 @@ class Substrate {
 }
 
 const build = async function() {
-  const url = "wss://node-6980789554074214400.gx.onfinality.io/ws?apikey=18953968-2a4d-4b1a-83e8-89c0c18961f4";
+  const url = "wss://nodle-parachain.api.onfinality.io/public-ws";
   const wsProvider = new WsProvider(url);
   const api = await ApiPromise.create({ provider: wsProvider });
   return new Substrate(api);
