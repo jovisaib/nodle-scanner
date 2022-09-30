@@ -90,7 +90,9 @@ function insertToBigQuery(rows, dataset, table) {
     await bigquery
       .dataset(dataset)
       .table(table)
-      .insert(rows);
+      .insert(rows).catch(function(reason) {
+        console.log(reason);
+      });
     console.log(`Inserted ${rows.length} rows`);
   }
   insertRowsAsStream(rows);
@@ -175,7 +177,6 @@ let main = async () => {
     if (action == "pubsub") {
       transfers.push(transfer);
       if (transfers.length >= MAX_SIZE) {
-        console.log(transfers.length);
         insertToBigQuery(transfers,dataset,table);
         transfers = [];
       }
