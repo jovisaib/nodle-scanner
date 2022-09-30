@@ -47,7 +47,7 @@ class Substrate {
   }
 
   async fetchTransfers(startBlock, endBlock, cb) {
-    const MAX_SIZE = 300;
+    const MAX_SIZE = 10000;
     const decimals = await this.decimals();
   
     for (let i = startBlock; i <= endBlock; i++) {
