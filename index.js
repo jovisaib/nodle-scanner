@@ -90,9 +90,7 @@ function insertToBigQuery(rows, dataset, table) {
     await bigquery
       .dataset(dataset)
       .table(table)
-      .insert(rows).catch(function(reason) {
-        console.log(reason);
-      });
+      .insert(rows);
     console.log(`Inserted ${rows.length} rows`);
   }
   insertRowsAsStream(rows);
