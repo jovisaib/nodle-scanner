@@ -47,6 +47,7 @@ class Substrate {
   }
 
   async fetchTransfers(startBlock, endBlock, cb) {
+    const MAX_SIZE = 300;
     const decimals = await this.decimals();
   
     for (let i = startBlock; i <= endBlock; i++) {
@@ -66,11 +67,12 @@ class Substrate {
           }else{
             t["event_type"] = "transfer";
           }
-          cb(t);
+          cb(t, MAX_SIZE);
         }
       });
       console.log(`Block ${i} scan success! ${endBlock-i+1}`)
     }
+    cb(null, 1);
     console.log(`Finished scan from ${startBlock} to ${endBlock}; total of ${endBlock-startBlock+1} blocks`)
   }
 }
@@ -101,7 +103,6 @@ function insertToBigQuery(rows, dataset, table) {
 
 let main = async () => {
   const DEFAULT_URL = "wss://nodle-parachain.api.onfinality.io/ws?apikey=245a89da-c9f1-47c8-801b-f7a27a122862";
-  const MAX_SIZE = 300;
   
   let nodeUrl = DEFAULT_URL;
   let projectId = "";
@@ -163,18 +164,20 @@ let main = async () => {
   const scanner = await build(nodeUrl);
   let transfers = [];
 
-  await scanner.fetchTransfers(startBlock, endBlock, async (transfer) => {
-    if (action == "csv") {
+  await scanner.fetchTransfers(startBlock, endBlock, async (transfer, maxSize) => {
+    if (action == "csv" && transfer) {
       stream.write(transfer);
     }
   
-    if (action == "json") {
+    if (action == "json" && transfer) {
       stream.write(JSON.stringify(transfer, null, 2)+"\r\n")
     }
   
     if (action == "pubsub") {
-      transfers.push(transfer);
-      if (transfers.length >= MAX_SIZE) {
+      if (transfer != null) {
+        transfers.push(transfer);
+      }
+      if (transfers.length >= maxSize) {
         insertToBigQuery(transfers,dataset,table);
         transfers = [];
       }
