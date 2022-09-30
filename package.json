@@ -6,9 +6,9 @@
   "type": "module",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "to_csv": "node index.js csv $npm_config_block",
-    "to_json": "node index.js json $npm_config_block",
-    "to_pubsub": "node index.js pubsub $npm_config_project $npm_config_topic $npm_config_startblock $npm_config_endblock"
+    "to_csv": "node index.js csv $npm_config_startblock $npm_config_endblock $npm_config_nodeurl",
+    "to_json": "node index.js json $npm_config_startblock $npm_config_endblock $npm_config_nodeurl",
+    "to_pubsub": "node index.js pubsub $npm_config_topic $npm_config_startblock $npm_config_endblock $npm_config_nodeurl"
   },
   "author": "",
   "license": "ISC",

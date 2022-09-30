@@ -73,8 +73,7 @@ class Substrate {
   }
 }
 
-const build = async function() {
-  const url = "wss://nodle-parachain.api.onfinality.io/ws?apikey=245a89da-c9f1-47c8-801b-f7a27a122862";
+const build = async function(url) {
   const wsProvider = new WsProvider(url);
   const api = await ApiPromise.create({ provider: wsProvider });
   return new Substrate(api);
@@ -83,8 +82,10 @@ const build = async function() {
 
 
 let main = async () => {
+  const DEFAULT_URL = "wss://nodle-parachain.api.onfinality.io/ws?apikey=245a89da-c9f1-47c8-801b-f7a27a122862";
   const MAX_SIZE = 100000;
   
+  let nodeUrl = DEFAULT_URL;
   let projectId = "";
   let topicName = "";
   let startBlock = 0;
@@ -97,17 +98,23 @@ let main = async () => {
   }
   
   
-  if ((action == "csv" || action == "json") && process.argv.length >= 4) {
-    startBlock = process.argv[3]
-    endBlock = process.argv[3]
+  if ((action == "csv" || action == "json") && process.argv.length >= 5) {
+    startBlock = process.argv[3];
+    endBlock = process.argv[4];
+    if (process.argv.length == 6) {
+      nodeUrl = process.argv[5];
+    }
     console.log(`The execution will output into data.${action}`)
   }
   
-  if (action == "pubsub" && process.argv.length >= 7) {
-    projectId = process.argv[3]
-    topicName = process.argv[4]
-    startBlock = process.argv[5]
-    endBlock = process.argv[6]
+  if (action == "pubsub" && process.argv.length >= 6) {
+    topicName = process.argv[3];
+    startBlock = process.argv[4];
+    endBlock = process.argv[5];
+
+    if (process.argv.length == 7) {
+      nodeUrl = process.argv[6];
+    }
     console.log(`The execution will output into pubsub topic ${topicName} from project ${projectId}`)
   }
   
@@ -132,13 +139,13 @@ let main = async () => {
     stream = fs.createWriteStream("./data.json")
   }
   
-  const scanner = await build();
+  const scanner = await build(DEFAULT_URL);
   let transfers = [];
 
   await scanner.fetchTransfers(startBlock, endBlock, async (transfer) => {
-    // if (action == "csv") {
-    //   stream.write(transfer);
-    // }
+    if (action == "csv") {
+      stream.write(transfer);
+    }
   
     if (action == "json") {
       stream.write(JSON.stringify(transfer, null, 2)+"\r\n")
