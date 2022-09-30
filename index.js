@@ -4,7 +4,7 @@ import {
   } from "@polkadot/api";
 import * as fs from 'fs';
 import { stringify } from 'csv-stringify';
-import { PubSub } from '@google-cloud/pubsub';
+import { BigQuery } from '@google-cloud/bigquery';
 
 
     
@@ -82,14 +82,31 @@ const build = async function(url) {
 }
 
 
+function insertToBigQuery(rows, dataset, table) {
+  const bigquery = new BigQuery();
+
+  async function insertRowsAsStream() {
+    console.log(dataset, table)
+    await bigquery
+      .dataset(dataset)
+      .table(table)
+      .insert(rows);
+    console.log(`Inserted ${rows.length} rows`);
+  }
+  insertRowsAsStream(rows);
+}
+
+
+
 
 let main = async () => {
   const DEFAULT_URL = "wss://nodle-parachain.api.onfinality.io/ws?apikey=245a89da-c9f1-47c8-801b-f7a27a122862";
-  const MAX_SIZE = 100000;
+  const MAX_SIZE = 300;
   
   let nodeUrl = DEFAULT_URL;
   let projectId = "";
-  let topicName = "";
+  let dataset = "";
+  let table = "";
   let startBlock = 0;
   let endBlock = 0;
 
@@ -109,15 +126,16 @@ let main = async () => {
     console.log(`The execution will output into data.${action}`)
   }
   
-  if (action == "pubsub" && process.argv.length >= 6) {
-    topicName = process.argv[3];
-    startBlock = process.argv[4];
-    endBlock = process.argv[5];
+  if (action == "pubsub" && process.argv.length >= 7) {
+    dataset = process.argv[3];
+    table = process.argv[4];
+    startBlock = process.argv[5];
+    endBlock = process.argv[6];
 
-    if (process.argv.length == 7) {
-      nodeUrl = process.argv[6];
+    if (process.argv.length == 8) {
+      nodeUrl = process.argv[7];
     }
-    console.log(`The execution will output into pubsub topic ${topicName} from project ${projectId}`)
+    console.log(`The execution will output into bq table ${table} from project ${projectId}`)
   }
   
   console.log(`Querying a total of ${endBlock-startBlock+1} blocks from ${startBlock} to ${endBlock}`);
@@ -142,7 +160,7 @@ let main = async () => {
     stream = fs.createWriteStream("./data.json")
   }
   
-  const scanner = await build(DEFAULT_URL);
+  const scanner = await build(nodeUrl);
   let transfers = [];
 
   await scanner.fetchTransfers(startBlock, endBlock, async (transfer) => {
@@ -155,16 +173,12 @@ let main = async () => {
     }
   
     if (action == "pubsub") {
-      // transfers.push(transfer);
-      
-      // if (transfers.length >= MAX_SIZE) {
-      //   const pubsub = new PubSub();
-      //   const topic = pubsub.topic(topicName);
-      //   let row = Buffer.from(JSON.stringify(transfers));
-      //   await topic.publish(row);
-      //   console.log("PUBL", transfers.length,row);
-      //   transfers = [];
-      // }
+      transfers.push(transfer);
+      if (transfers.length >= MAX_SIZE) {
+        console.log(transfers.length);
+        insertToBigQuery(transfers,dataset,table);
+        transfers = [];
+      }
     }
   });
 }
