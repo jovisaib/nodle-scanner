@@ -23,20 +23,23 @@ class Substrate {
     return this.asNumber(decimals);
   }
 
-  catchEvent(block, decimals,from, to, amount, evt, extrinsicData) {
+  catchEvent(block, decimals, from, to, amount, evt, extrinsic) {
     const { event, phase } = evt;
+    let extrinsicData = extrinsic.toHuman();
     let extrinsicTimestamp = extrinsicData[0].method.args.now;
     extrinsicTimestamp = extrinsicTimestamp.split(",").join("");
     extrinsicTimestamp = parseInt(extrinsicTimestamp.substring(0, 10));
     let status = event.meta.docs.toHuman()[0] || "";
     let extrinsicIndex = phase.toHuman();
     extrinsicIndex = extrinsicIndex["ApplyExtrinsic"];
+    let extrinsicHash = extrinsic[extrinsicIndex].hash.toHex();
 
     return {
       block_timestamp: extrinsicTimestamp,
       extrinsic_index: block+"-"+extrinsicIndex,
-      from: from.toString(),
-      to: to.toString(),
+      extrinsic_hash: extrinsicHash.toString(),
+      from: from.toHex().toString(),
+      to: to.toHex().toString(),
       amount: this.asNumber(amount) / Math.pow(10, decimals),
       block_num: block,
       success: status != "",
@@ -50,7 +53,6 @@ class Substrate {
       const blockHash = await this.api.rpc.chain.getBlockHash(i);
       const record = await this.api.derive.tx.events(blockHash);
       const signedBlock = await this.api.rpc.chain.getBlock(blockHash);
-      const extrinsicData = signedBlock.block.extrinsics.toHuman();
 
       record.events.forEach((evt) => {
         const { event } = evt;
@@ -58,7 +60,7 @@ class Substrate {
 
         if (eventName == "balances.Transfer") {
           const [from, to, amount] = event.data;
-          let t = this.catchEvent(i, decimals, from, to, amount, evt, extrinsicData);
+          let t = this.catchEvent(i, decimals, from, to, amount, evt, signedBlock.block.extrinsics);
           if (from == "4jbtsgNhpGAzdEGrKRb7g8Mq4ToNUpBVxeye942tWfG3gcYi") {
             t["event_type"] = "allocation";
           }else{
@@ -127,6 +129,7 @@ let main = async () => {
       "event_type",
       "block_timestamp",
       "extrinsic_index",
+      "extrinsic_hash",
       "from",
       "to",
       "amount",
