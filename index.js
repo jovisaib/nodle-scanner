@@ -179,6 +179,7 @@ let main = async () => {
       const bigquery = new BigQuery();
       await bigquery.dataset(dataset).table(table).insert(transfers);
       console.log(`Inserted ${transfers.length} rows`);
+      bigquery = null;
     }
   });
 }
