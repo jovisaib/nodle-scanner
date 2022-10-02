@@ -46,10 +46,12 @@ class Substrate {
     }
   }
 
-  async fetchTransfers(startBlock, endBlock, cb) {
-    const MAX_SIZE = 10000;
+  async fetchTransfers(startBlock, endBlock, maxBlockBatch, cb) {
+    let NUM_BLOCKS = maxBlockBatch;
     const decimals = await this.decimals();
-  
+    let counter = 1;
+    let transfers = [];
+
     for (let i = startBlock; i <= endBlock; i++) {
       const blockHash = await this.api.rpc.chain.getBlockHash(i);
       const record = await this.api.derive.tx.events(blockHash);
@@ -67,12 +69,22 @@ class Substrate {
           }else{
             t["event_type"] = "transfer";
           }
-          cb(t, MAX_SIZE);
+          transfers.push(t);
         }
       });
+
+      if (counter >= NUM_BLOCKS) {
+        await cb(transfers);
+        transfers = [];
+        counter = 0;
+      }
       console.log(`Block ${i} scan success! ${endBlock-i+1}`)
+      counter++;
     }
-    cb(null, 1);
+
+    if (transfers.length >= 1) {
+      cb(transfers);
+    }
     console.log(`Finished scan from ${startBlock} to ${endBlock}; total of ${endBlock-startBlock+1} blocks`)
   }
 }
@@ -82,23 +94,6 @@ const build = async function(url) {
   const api = await ApiPromise.create({ provider: wsProvider });
   return new Substrate(api);
 }
-
-
-function insertToBigQuery(rows, dataset, table) {
-  const bigquery = new BigQuery();
-
-  async function insertRowsAsStream() {
-    console.log(dataset, table)
-    await bigquery
-      .dataset(dataset)
-      .table(table)
-      .insert(rows);
-    console.log(`Inserted ${rows.length} rows`);
-  }
-  insertRowsAsStream(rows);
-}
-
-
 
 
 let main = async () => {
@@ -113,6 +108,7 @@ let main = async () => {
 
 
   let action = "";
+  let maxBlockBatch = 20;
   if (process.argv.length >= 3) {
     action = process.argv[2];
   }
@@ -121,6 +117,7 @@ let main = async () => {
   if ((action == "csv" || action == "json") && process.argv.length >= 5) {
     startBlock = process.argv[3];
     endBlock = process.argv[4];
+    maxBlockBatch = 1;
     if (process.argv.length == 6) {
       nodeUrl = process.argv[5];
     }
@@ -162,25 +159,24 @@ let main = async () => {
   }
   
   const scanner = await build(nodeUrl);
-  let transfers = [];
 
-  await scanner.fetchTransfers(startBlock, endBlock, async (transfer, maxSize) => {
-    if (action == "csv" && transfer) {
-      stream.write(transfer);
+  await scanner.fetchTransfers(startBlock, endBlock, maxBlockBatch, async transfers => {
+    if (action == "csv") {
+      for (let i in transfers) {
+        stream.write(transfers[i]);
+      }
     }
   
-    if (action == "json" && transfer) {
-      stream.write(JSON.stringify(transfer, null, 2)+"\r\n")
+    if (action == "json") {
+      for (let i in transfers) {
+        stream.write(JSON.stringify(transfers[i], null, 2)+"\r\n")
+      }
     }
   
     if (action == "pubsub") {
-      if (transfer != null) {
-        transfers.push(transfer);
-      }
-      if (transfers.length >= maxSize) {
-        insertToBigQuery(transfers,dataset,table);
-        transfers = [];
-      }
+      // const bigquery = new BigQuery();
+      // await bigquery.dataset(dataset).table(table).insert(transfers);
+      console.log(`Inserted ${transfers.length} rows`);
     }
   });
 }
