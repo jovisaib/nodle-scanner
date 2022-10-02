@@ -110,7 +110,7 @@ let main = async () => {
 
 
   let action = "";
-  let maxBlockBatch = 20;
+  let maxBlockBatch = 120;
   if (process.argv.length >= 3) {
     action = process.argv[2];
   }
