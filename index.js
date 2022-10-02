@@ -176,7 +176,7 @@ let main = async () => {
     }
   
     if (action == "pubsub") {
-      const bigquery = new BigQuery();
+      let bigquery = new BigQuery();
       await bigquery.dataset(dataset).table(table).insert(transfers);
       console.log(`Inserted ${transfers.length} rows`);
       bigquery = null;
