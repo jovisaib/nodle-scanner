@@ -49,6 +49,7 @@ class Substrate {
   async fetchTransfers(startBlock, endBlock, maxBlockBatch, cb) {
     let NUM_BLOCKS = maxBlockBatch;
     const decimals = await this.decimals();
+    let lastBlock = "none";
     let counter = 1;
     let transfers = [];
 
@@ -77,8 +78,9 @@ class Substrate {
         await cb(transfers);
         transfers = [];
         counter = 0;
+        lastBlock = i;
       }
-      console.log(`Block ${i} scan success! ${endBlock-i+1}`)
+      console.log(`Block ${i} scan success! ${endBlock-i+1} - last block stored was ${lastBlock}`)
       counter++;
     }
 
@@ -174,8 +176,8 @@ let main = async () => {
     }
   
     if (action == "pubsub") {
-      // const bigquery = new BigQuery();
-      // await bigquery.dataset(dataset).table(table).insert(transfers);
+      const bigquery = new BigQuery();
+      await bigquery.dataset(dataset).table(table).insert(transfers);
       console.log(`Inserted ${transfers.length} rows`);
     }
   });
