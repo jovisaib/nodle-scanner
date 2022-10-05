@@ -80,12 +80,12 @@ class Substrate {
         counter = 0;
         lastBlock = i;
       }
-      console.log(`Block ${i} scan success! ${endBlock-i+1} - last block stored was ${lastBlock}`)
+      console.log(`Block ${i} there are ${endBlock-i+1} left - last block stored was ${lastBlock}`)
       counter++;
     }
 
     if (transfers.length >= 1) {
-      cb(transfers);
+      await cb(transfers);
     }
     console.log(`Finished scan from ${startBlock} to ${endBlock}; total of ${endBlock-startBlock+1} blocks`)
   }
