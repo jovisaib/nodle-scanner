@@ -23,9 +23,8 @@ class Substrate {
     return this.asNumber(decimals);
   }
 
-  catchEvent(block, decimals, from, to, amount, evt, extrinsic) {
+  catchEvent(block, decimals, from, to, amount, evt, extrinsic, extrinsicData) {
     const { event, phase } = evt;
-    let extrinsicData = extrinsic.toHuman();
     let extrinsicTimestamp = extrinsicData[0].method.args.now;
     extrinsicTimestamp = extrinsicTimestamp.split(",").join("");
     extrinsicTimestamp = parseInt(extrinsicTimestamp.substring(0, 10));
@@ -57,6 +56,7 @@ class Substrate {
       const blockHash = await this.api.rpc.chain.getBlockHash(i);
       const record = await this.api.derive.tx.events(blockHash);
       const signedBlock = await this.api.rpc.chain.getBlock(blockHash);
+      let extrinsicData = signedBlock.block.extrinsics.toHuman();
 
       record.events.forEach((evt) => {
         const { event } = evt;
@@ -64,7 +64,7 @@ class Substrate {
 
         if (eventName == "balances.Transfer") {
           const [from, to, amount] = event.data;
-          let t = this.catchEvent(i, decimals, from, to, amount, evt, signedBlock.block.extrinsics);
+          let t = this.catchEvent(i, decimals, from, to, amount, evt, signedBlock.block.extrinsics, extrinsicData);
           if (from == "4jbtsgNhpGAzdEGrKRb7g8Mq4ToNUpBVxeye942tWfG3gcYi") {
             t["event_type"] = "allocation";
           }else{
