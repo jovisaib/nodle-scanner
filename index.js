@@ -63,7 +63,6 @@ class Substrate {
         const eventName = `${event.section}.${event.method}`;
 
         if (eventName == "balances.Transfer") {
-          console.log(eventName);
           const [from, to, amount] = event.data;
           let t = this.catchEvent(i, decimals, from, to, amount, evt, signedBlock.block.extrinsics);
           if (from == "4jbtsgNhpGAzdEGrKRb7g8Mq4ToNUpBVxeye942tWfG3gcYi") {
@@ -75,8 +74,7 @@ class Substrate {
         }
       });
 
-      console.log(transfers.length);
-      if (counter >= NUM_BLOCKS) {
+      if (transfers.length >= 1 && counter >= NUM_BLOCKS) {
         await cb(transfers);
         transfers = [];
         counter = 0;
