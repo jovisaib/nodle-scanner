@@ -74,7 +74,7 @@ class Substrate {
         }
       });
 
-      console.log(transfers.legnth);
+      console.log(transfers.length);
       if (counter >= NUM_BLOCKS) {
         await cb(transfers);
         transfers = [];
