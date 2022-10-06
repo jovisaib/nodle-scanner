@@ -52,7 +52,7 @@ class Substrate {
     let counter = 1;
     let transfers = [];
 
-    for (let i = startBlock; i <= endBlock; i++) {
+    for (let i = startBlock; i <= endBlock; i++) {  
       const blockHash = await this.api.rpc.chain.getBlockHash(i);
       const record = await this.api.derive.tx.events(blockHash);
       const signedBlock = await this.api.rpc.chain.getBlock(blockHash);
@@ -117,8 +117,8 @@ let main = async () => {
   
   
   if ((action == "csv" || action == "json") && process.argv.length >= 5) {
-    startBlock = process.argv[3];
-    endBlock = process.argv[4];
+    startBlock = parseInt(process.argv[3]);
+    endBlock = parseInt(process.argv[4]);
     maxBlockBatch = 1;
     if (process.argv.length == 6) {
       nodeUrl = process.argv[5];
@@ -129,8 +129,8 @@ let main = async () => {
   if (action == "pubsub" && process.argv.length >= 7) {
     dataset = process.argv[3];
     table = process.argv[4];
-    startBlock = process.argv[5];
-    endBlock = process.argv[6];
+    startBlock = parseInt(process.argv[5]);
+    endBlock = parseInt(process.argv[6]);
 
     if (process.argv.length == 8) {
       nodeUrl = process.argv[7];
