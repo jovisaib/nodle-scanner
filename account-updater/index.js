@@ -57,7 +57,7 @@ async function main() {
 
 
     for (let i in result) {
-        result[i]["receivedtime"] = stop;
+        result[i]["receivetime"] = stop;
         let r = result[i];
         result[i] = r
     }
