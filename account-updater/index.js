@@ -1,7 +1,7 @@
 import { ApiPromise, WsProvider } from '@polkadot/api'
 import { encodeAddress } from '@polkadot/util-crypto'
-import { stringify } from 'csv-stringify';
-import * as fs from 'fs';
+import { BigQuery } from '@google-cloud/bigquery';
+
 
 const nodleTestNode = 'wss://nodle-paradis.api.onfinality.io/public-ws'
 const nodleProdNode = 'wss://nodle-parachain.api.onfinality.io/public-ws'
@@ -23,15 +23,6 @@ async function main() {
     );
 
 
-    let stream = stringify({
-        header: true, columns: [
-            "account_id",
-            "free_balance",
-            "reserved_balance",
-        ]
-    });
-
-    stream.pipe(fs.createWriteStream("./accounts.csv"))
     const properties = await api.rpc.system.properties()
     const decimalst = properties.tokenDecimals.unwrapOr([12])[0]
     const decimals = parseInt(decimalst.toString());
@@ -39,7 +30,7 @@ async function main() {
     // Adjust how many accounts to query at once.
     let limit = 1000;
     let total = 0;
-    //let result = [];
+    let result = [];
     let last_key = ""
 
     const start = Date.now()
@@ -55,8 +46,7 @@ async function main() {
             let account_id = encodeAddress(user[0].slice(-32), 37);
             let free_balance = user[1].data.free.toString();
             let reserved_balance = user[1].data.reserved.toString();
-            //result.push();
-            stream.write({ account_id: account_id, free_balance: free_balance / Math.pow(10, decimals), reserved_balance: reserved_balance / Math.pow(10, decimals) })
+            result.push({ account_id: account_id, free_balance: free_balance / Math.pow(10, decimals), reserved_balance: reserved_balance / Math.pow(10, decimals) })
             last_key = user[0];
             batch++
         }
@@ -64,6 +54,22 @@ async function main() {
         console.log("fetched " + batch + ", total " + total);
     }
     const stop = Date.now()
+
+
+    for (let i in result) {
+        result[i]["receivedtime"] = stop;
+        let r = result[i];
+        result[i] = r
+    }
+
+    let dataset = "";
+    let table = "";
+
+    let bigquery = new BigQuery();
+    await bigquery.dataset(dataset).table(table).insert(transfers);
+    console.log(`Inserted ${transfers.length} rows`);
+    bigquery = null;
+
     console.log(`Time Taken to execute = ${(stop - start) / 1000} seconds`);
 }
 
