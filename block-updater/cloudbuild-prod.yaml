@@ -1,0 +1,31 @@
+steps:
+- id: build-app
+  name: 'gcr.io/cloud-builders/docker'
+  args:
+  - 'build'
+  - '-t'
+  - 'gcr.io/$_PROJECT_ID/accountupdater:latest'
+  - './account-updater'
+- id: push-image
+  name: 'gcr.io/cloud-builders/docker'
+  args: ['push', 'gcr.io/$_PROJECT_ID/accountupdater:latest']
+- id: 'update-reward-trigger-job'
+  name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+  entrypoint: 'bash'
+  args:
+  - '-eEuxo'
+  - 'pipefail'
+  - '-c'
+  - |-
+    currentJobName=$(gcloud beta run jobs list --filter="test-rewards-dataflow-job" --format="value(JOB)")
+    currentJobRegion=$(gcloud beta run jobs list --filter="test-rewards-dataflow-job" --format="value(REGION)")
+    if [ ! -z "$currentJobName" ]; then
+      gcloud beta run jobs update $_CR_JOB_NAME --region $currentJobRegion --image gcr.io/$_PROJECT_ID/rewardstrigger:latest
+    else
+      gcloud beta run jobs create $_CR_JOB_NAME --region $_REGION --image gcr.io/$_PROJECT_ID/rewardstrigger:latest
+    fi
+timeout: 3600s
+substitutions:
+  _JOB_BASE_NAME: "test-rewards"
+images:
+- 'gcr.io/$_PROJECT_ID/accountupdater:latest'

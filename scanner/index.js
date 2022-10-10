@@ -1,19 +1,9 @@
-
-
-// DECLARE val TIMESTAMP;
-// SET val = (SELECT PARSE_TIMESTAMP("%Y%m%d",max(partition_id))
-//   FROM `nodle-network-production.ble_event.INFORMATION_SCHEMA.PARTITIONS`
-//   WHERE table_name = 'nodl_transfers_2022sept');
-
-
-// SELECT * FROM `nodle-network-production.ble_event.nodl_transfers_2022sept`
-// WHERE block_timestamp >= val;
-
-
 import {
     ApiPromise,
     WsProvider,
   } from "@polkadot/api";
+import * as fs from 'fs';
+import { stringify } from 'csv-stringify';
 import { BigQuery } from '@google-cloud/bigquery';
 
 
@@ -111,31 +101,88 @@ const build = async function(url) {
 let main = async () => {
   const DEFAULT_URL = "wss://nodle-parachain.api.onfinality.io/ws?apikey=245a89da-c9f1-47c8-801b-f7a27a122862";
   
+  let nodeUrl = DEFAULT_URL;
+  let projectId = "";
+  let dataset = "";
+  let table = "";
   let startBlock = 0;
   let endBlock = 0;
 
 
+  let action = "";
   let maxBlockBatch = 120;
-
+  if (process.argv.length >= 3) {
+    action = process.argv[2];
+  }
+  
+  
+  if ((action == "csv" || action == "json") && process.argv.length >= 5) {
+    startBlock = parseInt(process.argv[3]);
+    endBlock = parseInt(process.argv[4]);
+    maxBlockBatch = 1;
+    if (process.argv.length == 6) {
+      nodeUrl = process.argv[5];
+    }
+    console.log(`The execution will output into data.${action}`)
+  }
+  
+  if (action == "pubsub" && process.argv.length >= 7) {
+    dataset = process.argv[3];
+    table = process.argv[4];
     startBlock = parseInt(process.argv[5]);
     endBlock = parseInt(process.argv[6]);
 
-    console.log(`The execution will output into bq table ${table}`)
+    if (process.argv.length == 8) {
+      nodeUrl = process.argv[7];
+    }
+    console.log(`The execution will output into bq table ${table} from project ${projectId}`)
   }
   
   console.log(`Querying a total of ${endBlock-startBlock+1} blocks from ${startBlock} to ${endBlock}`);
   
+  let stream;
+  if (action === "csv") {
+    stream = stringify({ header: true, columns: [
+      "block_num",
+      "event_type",
+      "block_timestamp",
+      "extrinsic_index",
+      "extrinsic_hash",
+      "from",
+      "to",
+      "amount",
+      "success",
+    ]});
+    stream.pipe(fs.createWriteStream("./data.csv"));
+  }
   
-  const scanner = await build(DEFAULT_URL);
+  if (action === "json") {
+    stream = fs.createWriteStream("./data.json")
+  }
+  
+  const scanner = await build(nodeUrl);
 
   await scanner.fetchTransfers(startBlock, endBlock, maxBlockBatch, async transfers => {
-    let bqDataset = "ble_event";
-    let table = "nodl_transfers_2022sept";
-    let bigquery = new BigQuery();
-    await bigquery.dataset(bqDataset).table(table).insert(transfers);
-    console.log(`Inserted ${transfers.length} rows`);
-    bigquery = null;
+    if (action == "csv") {
+      for (let i in transfers) {
+        stream.write(transfers[i]);
+      }
+    }
+  
+    if (action == "json") {
+      for (let i in transfers) {
+        stream.write(JSON.stringify(transfers[i], null, 2)+"\r\n")
+      }
+    }
+  
+    if (action == "pubsub") {
+      let bigquery = new BigQuery();
+      await bigquery.dataset(dataset).table(table).insert(transfers);
+      console.log(`Inserted ${transfers.length} rows`);
+      bigquery = null;
+    }
   });
+}
 
 main();
 

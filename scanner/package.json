@@ -1,0 +1,20 @@
+{
+  "name": "nodle-scanner",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "to_csv": "node index.js csv $npm_config_startblock $npm_config_endblock $npm_config_nodeurl",
+    "to_json": "node index.js json $npm_config_startblock $npm_config_endblock $npm_config_nodeurl",
+    "to_pubsub": "node index.js pubsub $npm_config_dataset $npm_config_table $npm_config_startblock $npm_config_endblock $npm_config_nodeurl"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@google-cloud/bigquery": "^6.0.3",
+    "@polkadot/api": "^9.4.2",
+    "csv": "^6.2.0"
+  }
+}
